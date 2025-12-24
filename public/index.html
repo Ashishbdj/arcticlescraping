@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Article Admin Panel</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .form-box {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+    }
+
+    button {
+      padding: 8px 15px;
+      margin-right: 5px;
+      cursor: pointer;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+    }
+
+    .card p {
+      white-space: pre-line;
+    }
+
+    .actions button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📰 Article Admin Panel</h1>
+
+<div class="container">
+
+  <!-- FORM -->
+  <div class="form-box">
+    <h3 id="formTitle">Add / Edit Article</h3>
+    <input type="text" id="title" placeholder="Title">
+    <textarea id="content" rows="6" placeholder="Content"></textarea>
+    <button onclick="saveArticle()">Save</button>
+    <button onclick="resetForm()">Cancel</button>
+  </div>
+
+  <!-- ARTICLES -->
+  <div id="articles"></div>
+
+</div>
+
+<script>
+  const API = "http://localhost:3000/api/articles";
+  let editId = null;
+
+  async function loadArticles() {
+    const res = await fetch(API);
+    const articles = await res.json();
+
+    const container = document.getElementById("articles");
+    container.innerHTML = "";
+
+    articles.forEach(article => {
+      container.innerHTML += `
+        <div class="card">
+          <h3>${article.title}</h3>
+          <p>${article.content.substring(0, 300)}...</p>
+
+          <div class="actions">
+            <button onclick="editArticle('${article._id}')">✏ Edit</button>
+            <button onclick="deleteArticle('${article._id}')">❌ Delete</button>
+          </div>
+        </div>
+      `;
+    });
+
+    console.log(articles);
+    
+  }
+
+  async function saveArticle() {
+    const title = document.getElementById("title").value;
+    const content = document.getElementById("content").value;
+
+    if (!title || !content) {
+      alert("Title & content required");
+      return;
+    }
+
+    const data = { title, content };
+
+    if (editId) {
+      await fetch(`${API}/${editId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    } else {
+      await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    }
+
+    resetForm();
+    loadArticles();
+  }
+
+  async function editArticle(id) {
+    const res = await fetch(`${API}/${id}`);
+    const article = await res.json();
+
+    document.getElementById("title").value = article.title;
+    document.getElementById("content").value = article.content;
+    editId = id;
+  }
+
+  async function deleteArticle(id) {
+    if (!confirm("Delete this article?")) return;
+
+    await fetch(`${API}/${id}`, {
+      method: "DELETE"
+    });
+
+    loadArticles();
+  }
+
+  function resetForm() {
+    editId = null;
+    document.getElementById("title").value = "";
+    document.getElementById("content").value = "";
+  }
+
+  loadArticles();
+</script>
+
+</body>
+</html>
